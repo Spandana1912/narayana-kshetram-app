@@ -3,7 +3,7 @@ import Webcam from 'react-webcam';
 import axios from 'axios';
 import './App.css'; // We will create this for the new theme styles
 
-const API_BASE = "http://localhost:5000";
+const API_BASE = "https://temple-backend-pjy8.onrender.com";
 
 function App() {
   const webcamRef = useRef(null);
@@ -11,18 +11,18 @@ function App() {
   // States
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
-  
+
   const [details, setDetails] = useState({ token: '', gender: '', type: '' });
   const [loading, setLoading] = useState(false);
   const [showSetup, setShowSetup] = useState(true);
-  
+
   // Camera State
   const [facingMode, setFacingMode] = useState("environment");
 
   // View States
   const [viewingTokens, setViewingTokens] = useState(null); // 'Male' | 'Female' | null
   const [tokensData, setTokensData] = useState([]);
-  
+
   const [viewingMissing, setViewingMissing] = useState(null); // 'Male' | 'Female' | null
   const [missingTokensData, setMissingTokensData] = useState([]);
 
@@ -50,7 +50,7 @@ function App() {
 
     setLoading(true);
     const imageSrc = webcamRef.current.getScreenshot();
-    
+
     const payload = {
       image: imageSrc,
       tokenNumber: details.token,
@@ -60,10 +60,10 @@ function App() {
 
     try {
       const response = await axios.post(`${API_BASE}/api/tokens`, payload);
-      
+
       // Auto-print immediately
-      const savedUrl = response.data.photoUrl.startsWith('http') 
-        ? response.data.photoUrl 
+      const savedUrl = response.data.photoUrl.startsWith('http')
+        ? response.data.photoUrl
         : `${API_BASE}${response.data.photoUrl}`;
       printToken(savedUrl);
 
@@ -98,7 +98,7 @@ function App() {
     try {
       const res = await axios.get(`${API_BASE}/api/tokens?gender=${gender}`);
       const existingNumbers = res.data.map(t => Number(t.tokenNumber));
-      
+
       const missing = [];
       for (let i = 1; i <= 108; i++) {
         if (!existingNumbers.includes(i)) {
@@ -156,7 +156,7 @@ function App() {
       iframe.style.display = 'none';
       iframe.src = blobUrl;
       document.body.appendChild(iframe);
-      
+
       iframe.onload = () => {
         iframe.contentWindow.focus();
         iframe.contentWindow.print();
@@ -170,8 +170,8 @@ function App() {
       console.error("Failed to print token:", err);
       // Fallback if fetch fails (e.g. CORS not configured on bucket)
       const printWindow = window.open(url, "_blank");
-      if(printWindow) {
-          printWindow.onload = () => printWindow.print();
+      if (printWindow) {
+        printWindow.onload = () => printWindow.print();
       }
     }
   };
@@ -186,11 +186,11 @@ function App() {
           <img src="/logo.png" alt="Temple Logo" className="login-logo" />
           <h1 style={{ color: 'var(--temple-red)', margin: '10px 0' }}>నారాయణ క్షేత్రం</h1>
           <p style={{ color: 'var(--text-light)', marginBottom: '30px' }}>Authorized Personnel Only</p>
-          
-          <input 
-            type="password" 
-            className="token-input" 
-            placeholder="Enter Admin Password" 
+
+          <input
+            type="password"
+            className="token-input"
+            placeholder="Enter Admin Password"
             value={passwordInput}
             onChange={(e) => setPasswordInput(e.target.value)}
             onKeyDown={(e) => {
@@ -201,8 +201,8 @@ function App() {
             }}
             style={{ marginBottom: '20px' }}
           />
-          <button 
-            className="capture-btn" 
+          <button
+            className="capture-btn"
             style={{ padding: '15px' }}
             onClick={() => {
               if (passwordInput === 'narayana') setIsAuthenticated(true);
@@ -218,7 +218,7 @@ function App() {
 
   return (
     <div className="app-container">
-      
+
       {/* --- SETUP OVERLAY --- */}
       {showSetup && (
         <div className="overlay">
@@ -226,13 +226,13 @@ function App() {
             <h2>🕉️ Default Setup</h2>
             <div className="input-group">
               <p>Category</p>
-              <label><input type="radio" name="popupGender" value="Male" onChange={e => setDetails({...details, gender: e.target.value})} /> Male / పురుషుడు</label>
-              <label><input type="radio" name="popupGender" value="Female" onChange={e => setDetails({...details, gender: e.target.value})} /> Female / స్త్రీ</label>
+              <label><input type="radio" name="popupGender" value="Male" onChange={e => setDetails({ ...details, gender: e.target.value })} /> Male / పురుషుడు</label>
+              <label><input type="radio" name="popupGender" value="Female" onChange={e => setDetails({ ...details, gender: e.target.value })} /> Female / స్త్రీ</label>
             </div>
             <div className="input-group">
               <p>Type</p>
-              <label><input type="radio" name="popupType" value="Self" onChange={e => setDetails({...details, type: e.target.value})} /> Self</label>
-              <label><input type="radio" name="popupType" value="Others" onChange={e => setDetails({...details, type: e.target.value})} /> Others</label>
+              <label><input type="radio" name="popupType" value="Self" onChange={e => setDetails({ ...details, type: e.target.value })} /> Self</label>
+              <label><input type="radio" name="popupType" value="Others" onChange={e => setDetails({ ...details, type: e.target.value })} /> Others</label>
             </div>
             <button className="primary-btn" onClick={() => {
               if (!details.gender || !details.type) return setCustomDialog({ type: 'alert', message: "Please select both options" });
@@ -258,7 +258,7 @@ function App() {
           <span style={{ fontSize: '1.1rem' }}>Active: <b style={{ color: 'var(--saffron)' }}>{details.gender}</b> ({details.type})</span>
           <button className="text-btn" onClick={() => setShowSetup(true)} style={{ margin: 0, padding: '5px 10px', background: '#f8f9fa', borderRadius: '5px', border: '1px solid #ddd' }}>Change</button>
         </div>
-        
+
         <div className="horizontal-buttons">
           <button className="action-btn" onClick={toggleCamera}>🔄 Camera</button>
           <button className="action-btn male-btn" onClick={() => loadTokens('Male')}>👁️ Male</button>
@@ -270,7 +270,7 @@ function App() {
 
       {/* --- MAIN CAPTURE LAYOUT --- */}
       <main className="main-layout">
-        
+
         {/* Camera Panel */}
         <section className="camera-panel panel-card compact-camera">
           <div className="camera-wrapper">
@@ -287,19 +287,19 @@ function App() {
         {/* Capture Panel */}
         <section className="control-panel panel-card" style={{ borderTop: '5px solid var(--temple-red)' }}>
           <div className="capture-section">
-            <input 
-              type="text" 
+            <input
+              type="text"
               inputMode="numeric"
               pattern="[0-9]*"
               className="token-input"
-              value={details.token} 
+              value={details.token}
               onChange={e => {
                 const val = e.target.value;
-                if(val === '' || /^[0-9\b]+$/.test(val)) {
-                  setDetails({...details, token: val});
+                if (val === '' || /^[0-9\b]+$/.test(val)) {
+                  setDetails({ ...details, token: val });
                 }
               }}
-              placeholder="Enter Token No (1-108)" 
+              placeholder="Enter Token No (1-108)"
               maxLength="3"
               style={{ padding: '20px', fontSize: '1.4rem' }}
             />
@@ -312,7 +312,7 @@ function App() {
       </main>
 
       {/* --- MODALS --- */}
-      
+
       {/* View Tokens Modal */}
       {viewingTokens && (
         <div className="overlay" onClick={() => setViewingTokens(null)}>
@@ -326,9 +326,9 @@ function App() {
                 const imgUrl = t.photoUrl.startsWith('http') ? t.photoUrl : `${API_BASE}${t.photoUrl}`;
                 return (
                   <div key={t._id} className="token-card">
-                    <img 
-                      src={imgUrl} 
-                      alt={`Token ${t.tokenNumber}`} 
+                    <img
+                      src={imgUrl}
+                      alt={`Token ${t.tokenNumber}`}
                       onClick={() => setViewingImage(imgUrl)}
                       style={{ cursor: 'pointer' }}
                     />
@@ -356,11 +356,11 @@ function App() {
               <button className="close-btn" onClick={() => setViewingMissing(null)}>✖</button>
             </div>
             <div className="missing-list">
-              {missingTokensData.length === 0 
-                ? <p>All 108 tokens captured! 🎉</p> 
+              {missingTokensData.length === 0
+                ? <p>All 108 tokens captured! 🎉</p>
                 : <div className="number-grid">
-                    {missingTokensData.map(num => <span key={num} className="missing-number">{num}</span>)}
-                  </div>
+                  {missingTokensData.map(num => <span key={num} className="missing-number">{num}</span>)}
+                </div>
               }
             </div>
           </div>
@@ -389,15 +389,15 @@ function App() {
             </p>
             <div className="dialog-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
               {customDialog.type === 'confirm' && (
-                <button 
-                  className="action-btn" 
+                <button
+                  className="action-btn"
                   onClick={() => setCustomDialog(null)}
                 >
                   Cancel
                 </button>
               )}
-              <button 
-                className="primary-btn" 
+              <button
+                className="primary-btn"
                 onClick={() => {
                   if (customDialog.type === 'confirm' && customDialog.onConfirm) {
                     customDialog.onConfirm();
