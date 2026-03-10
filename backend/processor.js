@@ -40,13 +40,26 @@ const processPhoto = async (imageBuffer, tokenNumber, gender, category = 'Self')
     if (category.toLowerCase() === 'others') {
       teluguGender += " (ఇతరులు)";
     }
-    
+    // 1. Read the custom Telugu Font into Base64 (Only loads into memory once per execution)
+    const fontPath = path.join(__dirname, "assets", "NotoSansTelugu-Regular.ttf");
+    let fontBase64 = '';
+    if (fs.existsSync(fontPath)) {
+      const fontBuffer = fs.readFileSync(fontPath);
+      fontBase64 = fontBuffer.toString('base64');
+    }
+
     const svgHeader = `
     <svg width="${WIDTH}" height="${HEADER_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <style>
+          @font-face {
+            font-family: 'NotoTelugu';
+            src: url(data:font/truetype;charset=utf-8;base64,${fontBase64}) format('truetype');
+            font-weight: normal;
+            font-style: normal;
+          }
           .telugu-text {
-            font-family: 'Noto Sans Telugu', 'Nirmala UI', 'Gautami', 'Vani', sans-serif;
+            font-family: 'NotoTelugu', 'Noto Sans Telugu', 'Nirmala UI', sans-serif;
           }
         </style>
       </defs>
