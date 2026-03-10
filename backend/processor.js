@@ -41,13 +41,29 @@ const processPhoto = async (imageBuffer, tokenNumber, gender, category = 'Self')
       teluguGender += " (ఇతరులు)";
     }
     
-    // Using native Windows fonts that support Telugu (Nirmala UI, Gautami, Vani)
+    // 1. Read Base64 Custom Telugu Font (Guarantees rendering anywhere)
+    const fontPath = path.join(__dirname, "assets", "font-base64.txt");
+    let fontBase64 = '';
+    if (fs.existsSync(fontPath)) {
+      fontBase64 = fs.readFileSync(fontPath, 'utf8');
+    }
+
     const svgHeader = `
     <svg width="${WIDTH}" height="${HEADER_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <style>
+          @font-face {
+            font-family: 'NotoTelugu';
+            src: url(data:font/truetype;charset=utf-8;base64,${fontBase64}) format('truetype');
+            font-weight: normal;
+            font-style: normal;
+          }
+        </style>
+      </defs>
       <rect width="${WIDTH}" height="${HEADER_HEIGHT}" fill="#fff8e6"/>
       <rect x="0" y="${HEADER_HEIGHT - 8}" width="${WIDTH}" height="8" fill="#c0392b"/>
       
-      <g font-family="'Nirmala UI', Gautami, sans-serif" text-anchor="middle">
+      <g font-family="'NotoTelugu', sans-serif" text-anchor="middle">
         <text x="${WIDTH / 2}" y="50" font-size="38" font-weight="bold" fill="#7a3e00">నారాయణ క్షేత్రం</text>
         <text x="${WIDTH / 2}" y="95" font-size="28" font-weight="bold" fill="#7a3e00">శ్రీ దేవుడు బాబు సంస్థానం</text>
         <text x="${WIDTH / 2}" y="130" font-size="22" fill="#7a3e00">S. మూలపొలం</text>
@@ -57,7 +73,7 @@ const processPhoto = async (imageBuffer, tokenNumber, gender, category = 'Self')
         <text x="${WIDTH / 2}" y="185" font-size="32" font-weight="bold" fill="#ffffff">టోకెన్ : ${tokenNumber}</text>
       </g>
       
-      <g font-family="'Nirmala UI', sans-serif">
+      <g font-family="'NotoTelugu', sans-serif">
         <text x="30" y="220" font-size="16" fill="#555555">Date &amp; Time</text>
         <text x="30" y="245" font-size="20" font-weight="bold" fill="#000000">${timestamp}</text>
         
