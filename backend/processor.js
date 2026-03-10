@@ -1,6 +1,7 @@
 const sharp = require("sharp");
 const path = require("path");
 const fs = require("fs");
+const nodeHtmlToImage = require("node-html-to-image");
 
 const processPhoto = async (imageBuffer, tokenNumber, gender, category = 'Self') => {
   try {
@@ -48,44 +49,85 @@ const processPhoto = async (imageBuffer, tokenNumber, gender, category = 'Self')
       fontBase64 = fontBuffer.toString('base64');
     }
 
-    const svgHeader = `
-    <svg width="${WIDTH}" height="${HEADER_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <style>
-          @font-face {
-            font-family: 'NotoTelugu';
-            src: url(data:font/truetype;charset=utf-8;base64,${fontBase64}) format('truetype');
-            font-weight: normal;
-            font-style: normal;
-          }
-          .telugu-text {
-            font-family: 'NotoTelugu', 'Noto Sans Telugu', 'Nirmala UI', sans-serif;
-          }
-        </style>
-      </defs>
-      <rect width="${WIDTH}" height="${HEADER_HEIGHT}" fill="#fff8e6"/>
-      <rect x="0" y="${HEADER_HEIGHT - 8}" width="${WIDTH}" height="8" fill="#c0392b"/>
-      
-      <g class="telugu-text" text-anchor="middle">
-        <text x="${WIDTH / 2}" y="50" font-size="38" font-weight="bold" fill="#7a3e00">నారాయణ క్షేత్రం</text>
-        <text x="${WIDTH / 2}" y="95" font-size="28" font-weight="bold" fill="#7a3e00">శ్రీ దేవుడు బాబు సంస్థానం</text>
-        <text x="${WIDTH / 2}" y="130" font-size="22" fill="#7a3e00">S. మూలపొలం</text>
-        
-        <!-- Highlighted Token -->
-        <rect x="${WIDTH / 2 - 130}" y="150" width="260" height="50" fill="#c0392b" rx="8"/>
-        <text x="${WIDTH / 2}" y="185" font-size="32" font-weight="bold" fill="#ffffff">టోకెన్ : ${tokenNumber}</text>
-      </g>
-      
-      <g class="telugu-text">
-        <text x="30" y="220" font-size="16" fill="#555555">Date &amp; Time</text>
-        <text x="30" y="245" font-size="20" font-weight="bold" fill="#000000">${timestamp}</text>
-        
-        <text x="${WIDTH - 30}" y="220" font-size="16" fill="#555555" text-anchor="end">Category</text>
-        <text x="${WIDTH - 30}" y="245" font-size="24" font-weight="bold" fill="#000000" text-anchor="end">${teluguGender}</text>
-      </g>
-    </svg>`;
+    const htmlHeader = `
+      <html>
+        <head>
+          <style>
+            @font-face {
+              font-family: 'NotoTelugu';
+              src: url(data:font/truetype;charset=utf-8;base64,${fontBase64}) format('truetype');
+            }
+            body {
+              width: ${WIDTH}px;
+              height: ${HEADER_HEIGHT}px;
+              margin: 0;
+              padding: 0;
+              background-color: #fff8e6;
+              font-family: 'NotoTelugu', sans-serif;
+              border-bottom: 8px solid #c0392b;
+              box-sizing: border-box;
+              position: relative;
+            }
+            .title { text-align: center; color: #7a3e00; font-size: 38px; font-weight: bold; margin-top: 15px; margin-bottom: 5px; }
+            .subtitle { text-align: center; color: #7a3e00; font-size: 28px; font-weight: bold; margin: 0; }
+            .subtext { text-align: center; color: #7a3e00; font-size: 22px; margin-top: 5px; margin-bottom: 15px; }
+            
+            .token-pill {
+              background-color: #c0392b;
+              color: white;
+              font-size: 32px;
+              font-weight: bold;
+              text-align: center;
+              padding: 5px 20px;
+              border-radius: 8px;
+              width: 260px;
+              margin: 0 auto;
+            }
+            
+            .footer-row {
+              position: absolute;
+              bottom: 15px;
+              width: 100%;
+              display: flex;
+              justify-content: space-between;
+              padding: 0 30px;
+              box-sizing: border-box;
+            }
+            
+            .meta-block { display: flex; flex-direction: column; }
+            .meta-label { color: #555555; font-size: 16px; margin-bottom: -5px; }
+            .meta-value { color: #000000; font-weight: bold; font-size: 20px; }
+            .meta-value.large { font-size: 24px; }
+            .right-align { align-items: flex-end; }
+          </style>
+        </head>
+        <body>
+          <div class="title">నారాయణ క్షేత్రం</div>
+          <div class="subtitle">శ్రీ దేవుడు బాబు సంస్థానం</div>
+          <div class="subtext">S. మూలపొలం</div>
+          
+          <div class="token-pill">టోకెన్ : ${tokenNumber}</div>
+          
+          <div class="footer-row">
+            <div class="meta-block">
+              <span class="meta-label">Date & Time</span>
+              <span class="meta-value">${timestamp}</span>
+            </div>
+            <div class="meta-block right-align">
+              <span class="meta-label">Category</span>
+              <span class="meta-value large">${teluguGender}</span>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
 
-    const headerSvgBuffer = Buffer.from(svgHeader);
+    // Render HTML to an image buffer using headless Chrome (perfect text shaping)
+    const headerImageBuffer = await nodeHtmlToImage({
+      html: htmlHeader,
+      transparent: false,
+      puppeteerArgs: { args: ['--no-sandbox', '--disable-setuid-sandbox'] }
+    });
 
     /* ================= FACE IMAGE ================= */
     const faceImage = await sharp(imageBuffer)
@@ -99,7 +141,7 @@ const processPhoto = async (imageBuffer, tokenNumber, gender, category = 'Self')
     /* ================= FINAL COMPOSE ================= */
     // Build array of overlays
     const overlays = [
-      { input: headerSvgBuffer, top: 0, left: 0 },
+      { input: headerImageBuffer, top: 0, left: 0 },
       { input: faceImage, top: HEADER_HEIGHT, left: 0 }
     ];
 
