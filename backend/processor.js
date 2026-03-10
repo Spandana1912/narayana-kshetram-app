@@ -31,7 +31,10 @@ const processPhoto = async (imageBuffer, tokenNumber, gender, category = 'Self')
     }
 
     /* ================= HEADER SVG (FOR PERFECT TEXT SHAPING) ================= */
-    const timestamp = new Date().toLocaleString("en-IN", { hour12: true });
+    const timestamp = new Date().toLocaleString("en-IN", { 
+      timeZone: "Asia/Kolkata", 
+      hour12: true 
+    });
     
     // Format Gender text
     let teluguGender = gender.toLowerCase() === "male" ? "పురుషుడు" : "స్త్రీ";
