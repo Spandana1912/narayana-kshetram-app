@@ -1,7 +1,6 @@
 const sharp = require("sharp");
 const path = require("path");
 const fs = require("fs");
-const nodeHtmlToImage = require("node-html-to-image");
 
 const processPhoto = async (imageBuffer, tokenNumber, gender, category = 'Self') => {
   try {
@@ -41,93 +40,38 @@ const processPhoto = async (imageBuffer, tokenNumber, gender, category = 'Self')
     if (category.toLowerCase() === 'others') {
       teluguGender += " (ఇతరులు)";
     }
-    // 1. Read the custom Telugu Font into Base64 (Only loads into memory once per execution)
-    const fontPath = path.join(__dirname, "assets", "NotoSansTelugu-Regular.ttf");
-    let fontBase64 = '';
-    if (fs.existsSync(fontPath)) {
-      const fontBuffer = fs.readFileSync(fontPath);
-      fontBase64 = fontBuffer.toString('base64');
-    }
+    // Load static pre-rendered Telugu PNGs for guaranteed rendering on Linux
+    let categoryPng = 'cat_m.png';
+    if (gender.toLowerCase() === "male" && category.toLowerCase() === 'others') categoryPng = 'cat_mo.png';
+    else if (gender.toLowerCase() === "female" && category.toLowerCase() === 'self') categoryPng = 'cat_f.png';
+    else if (gender.toLowerCase() === "female" && category.toLowerCase() === 'others') categoryPng = 'cat_fo.png';
 
-    const htmlHeader = `
-      <html>
-        <head>
-          <style>
-            @font-face {
-              font-family: 'NotoTelugu';
-              src: url(data:font/truetype;charset=utf-8;base64,${fontBase64}) format('truetype');
-            }
-            body {
-              width: ${WIDTH}px;
-              height: ${HEADER_HEIGHT}px;
-              margin: 0;
-              padding: 0;
-              background-color: #fff8e6;
-              font-family: 'NotoTelugu', sans-serif;
-              border-bottom: 8px solid #c0392b;
-              box-sizing: border-box;
-              position: relative;
-            }
-            .title { text-align: center; color: #7a3e00; font-size: 38px; font-weight: bold; margin-top: 15px; margin-bottom: 5px; }
-            .subtitle { text-align: center; color: #7a3e00; font-size: 28px; font-weight: bold; margin: 0; }
-            .subtext { text-align: center; color: #7a3e00; font-size: 22px; margin-top: 5px; margin-bottom: 15px; }
-            
-            .token-pill {
-              background-color: #c0392b;
-              color: white;
-              font-size: 32px;
-              font-weight: bold;
-              text-align: center;
-              padding: 5px 20px;
-              border-radius: 8px;
-              width: 260px;
-              margin: 0 auto;
-            }
-            
-            .footer-row {
-              position: absolute;
-              bottom: 15px;
-              width: 100%;
-              display: flex;
-              justify-content: space-between;
-              padding: 0 30px;
-              box-sizing: border-box;
-            }
-            
-            .meta-block { display: flex; flex-direction: column; }
-            .meta-label { color: #555555; font-size: 16px; margin-bottom: -5px; }
-            .meta-value { color: #000000; font-weight: bold; font-size: 20px; }
-            .meta-value.large { font-size: 24px; }
-            .right-align { align-items: flex-end; }
-          </style>
-        </head>
-        <body>
-          <div class="title">నారాయణ క్షేత్రం</div>
-          <div class="subtitle">శ్రీ దేవుడు బాబు సంస్థానం</div>
-          <div class="subtext">S. మూలపొలం</div>
-          
-          <div class="token-pill">టోకెన్ : ${tokenNumber}</div>
-          
-          <div class="footer-row">
-            <div class="meta-block">
-              <span class="meta-label">Date & Time</span>
-              <span class="meta-value">${timestamp}</span>
-            </div>
-            <div class="meta-block right-align">
-              <span class="meta-label">Category</span>
-              <span class="meta-value large">${teluguGender}</span>
-            </div>
-          </div>
-        </body>
-      </html>
-    `;
+    const titleBuffer = fs.readFileSync(path.join(__dirname, 'assets', 'title.png'));
+    const subtitleBuffer = fs.readFileSync(path.join(__dirname, 'assets', 'subtitle.png'));
+    const locationBuffer = fs.readFileSync(path.join(__dirname, 'assets', 'location.png'));
+    const tokenPrefixBuffer = fs.readFileSync(path.join(__dirname, 'assets', 'token_prefix.png'));
+    const categoryBuffer = fs.readFileSync(path.join(__dirname, 'assets', categoryPng));
 
-    // Render HTML to an image buffer using headless Chrome (perfect text shaping)
-    const headerImageBuffer = await nodeHtmlToImage({
-      html: htmlHeader,
-      transparent: false,
-      puppeteerArgs: { args: ['--no-sandbox', '--disable-setuid-sandbox'] }
-    });
+    // Baseline English/Numeric SVG template (Linux safe)
+    const svgHeader = `
+    <svg width="${WIDTH}" height="${HEADER_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
+      <rect width="${WIDTH}" height="${HEADER_HEIGHT}" fill="#fff8e6"/>
+      <rect x="0" y="${HEADER_HEIGHT - 8}" width="${WIDTH}" height="8" fill="#c0392b"/>
+      
+      <!-- Highlighted Token -->
+      <rect x="${WIDTH / 2 - 130}" y="150" width="260" height="50" fill="#c0392b" rx="8"/>
+      
+      <g font-family="Arial, sans-serif">
+        <text x="395" y="186" font-size="32" font-weight="bold" fill="#ffffff" text-anchor="start">${tokenNumber}</text>
+        
+        <text x="30" y="220" font-size="16" fill="#555555">Date &amp; Time</text>
+        <text x="30" y="245" font-size="20" font-weight="bold" fill="#000000">${timestamp}</text>
+        
+        <text x="${WIDTH - 30}" y="220" font-size="16" fill="#555555" text-anchor="end">Category</text>
+      </g>
+    </svg>`;
+
+    const headerSvgBuffer = Buffer.from(svgHeader);
 
     /* ================= FACE IMAGE ================= */
     const faceImage = await sharp(imageBuffer)
@@ -139,10 +83,15 @@ const processPhoto = async (imageBuffer, tokenNumber, gender, category = 'Self')
       .toBuffer();
 
     /* ================= FINAL COMPOSE ================= */
-    // Build array of overlays
+    // Build array of overlays (combining local transparent PNGs with the SVG)
     const overlays = [
-      { input: headerImageBuffer, top: 0, left: 0 },
-      { input: faceImage, top: HEADER_HEIGHT, left: 0 }
+      { input: headerSvgBuffer, top: 0, left: 0 },
+      { input: faceImage, top: HEADER_HEIGHT, left: 0 },
+      { input: titleBuffer, top: 15, left: 0 },
+      { input: subtitleBuffer, top: 70, left: 0 },
+      { input: locationBuffer, top: 110, left: 0 },
+      { input: tokenPrefixBuffer, top: 150, left: 0 },
+      { input: categoryBuffer, top: 220, left: WIDTH - 380 } // Right aligned width 350
     ];
 
     // Overlay logo if it exists
