@@ -1,0 +1,7 @@
+{
+  "stack": "Error: querySrv ENOTFOUND _mongodb._tcp.nk.lrxvx4u.mongodb.net\n    at QueryReqWrap.onresolve [as oncomplete] (node:internal/dns/promises:294:17)",
+  "message": "querySrv ENOTFOUND _mongodb._tcp.nk.lrxvx4u.mongodb.net",
+  "code": "ENOTFOUND",
+  "syscall": "querySrv",
+  "hostname": "_mongodb._tcp.nk.lrxvx4u.mongodb.net"
+}

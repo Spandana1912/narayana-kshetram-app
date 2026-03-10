@@ -1,0 +1,21 @@
+﻿≡ƒÜÇ Server running on port 5000
+node : Γ¥î MongoDB 
+connection failed: 
+querySrv ENOTFOUND _mon
+godb._tcp.nk.lrxvx4u.mo
+ngodb.net
+At line:1 char:1
++ node server.js > 
+error.log 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (Γ¥î MongoDB c   
+ on...x4u.mongodb.n    
+et:String) [], Rem    
+oteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
