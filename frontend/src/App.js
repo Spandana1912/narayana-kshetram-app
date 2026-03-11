@@ -145,34 +145,32 @@ function App() {
     });
   };
 
-  const printToken = async (url) => {
+  const printToken = (url) => {
     try {
-      // Fetch image as blob to bypass cross-origin iframe restrictions
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      iframe.src = blobUrl;
-      document.body.appendChild(iframe);
-
-      iframe.onload = () => {
-        iframe.contentWindow.focus();
-        iframe.contentWindow.print();
-        // Cleanup iframe and blob memory after printing dialog closes
-        setTimeout(() => {
-          document.body.removeChild(iframe);
-          URL.revokeObjectURL(blobUrl);
-        }, 5000);
-      };
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        setCustomDialog({ type: 'alert', message: 'Please allow Pop-ups to print tokens.' });
+        return;
+      }
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Print Token</title>
+            <style>
+              @page { margin: 0; }
+              body { margin: 0; display: flex; justify-content: center; align-items: flex-start; }
+              img { max-width: 100%; height: auto; }
+            </style>
+          </head>
+          <body>
+            <img src="${url}" onload="window.print(); window.close();" />
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
     } catch (err) {
       console.error("Failed to print token:", err);
-      // Fallback if fetch fails (e.g. CORS not configured on bucket)
-      const printWindow = window.open(url, "_blank");
-      if (printWindow) {
-        printWindow.onload = () => printWindow.print();
-      }
+      setCustomDialog({ type: 'alert', message: "Printing failed. Please try manually from view tokens." });
     }
   };
 
