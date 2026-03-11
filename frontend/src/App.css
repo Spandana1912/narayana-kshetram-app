@@ -463,3 +463,37 @@
     margin-left: auto;
     margin-right: auto;
   }
+
+  /* ================================
+     PRINTING OPTIMIZATION
+     ================================ */
+  @media print {
+    /* Hide the entire React application */
+    #root, .dialog-overlay {
+      display: none !important;
+    }
+    
+    /* Ensure only the print image is visible and takes up the whole page */
+    #print-overlay-image {
+      display: block !important;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: auto;
+      page-break-inside: avoid;
+    }
+    
+    @page {
+      margin: 0; /* Remove default headers/footers */
+    }
+    
+    body {
+      background: none; /* Remove background gradients */
+    }
+  }
+
+  /* Hide the print image from the normal screen */
+  #print-overlay-image {
+    display: none;
+  }

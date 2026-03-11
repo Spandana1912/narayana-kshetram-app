@@ -147,27 +147,35 @@ function App() {
 
   const printToken = (url) => {
     try {
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) {
-        setCustomDialog({ type: 'alert', message: 'Please allow Pop-ups to print tokens.' });
-        return;
-      }
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>Print Token</title>
-            <style>
-              @page { margin: 0; }
-              body { margin: 0; display: flex; justify-content: center; align-items: flex-start; }
-              img { max-width: 100%; height: auto; }
-            </style>
-          </head>
-          <body>
-            <img src="${url}" onload="window.print(); window.close();" />
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
+      // 1. Remove any previous loose print overlays
+      const oldImg = document.getElementById("print-overlay-image");
+      if (oldImg) oldImg.remove();
+
+      // 2. Create an invisible image specifically tagged for the @media print CSS
+      const printImg = document.createElement("img");
+      printImg.id = "print-overlay-image";
+      printImg.src = url;
+
+      // 3. Wait for the browser to download the image completely before opening print dialog
+      printImg.onload = () => {
+        window.print();
+        
+        // 4. Cleanup the DOM after the print dialog resolves
+        setTimeout(() => {
+          if (document.body.contains(printImg)) {
+            document.body.removeChild(printImg);
+          }
+        }, 2000);
+      };
+
+      // Handle loading errors gracefully
+      printImg.onerror = () => {
+        setCustomDialog({ type: 'alert', message: "Failed to load image for printing. Try again." });
+        if (document.body.contains(printImg)) printImg.remove();
+      };
+
+      document.body.appendChild(printImg);
+
     } catch (err) {
       console.error("Failed to print token:", err);
       setCustomDialog({ type: 'alert', message: "Printing failed. Please try manually from view tokens." });
