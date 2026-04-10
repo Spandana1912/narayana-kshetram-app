@@ -145,40 +145,47 @@ function App() {
     });
   };
 
-  const printToken = (url) => {
+  const printToken = async (url) => {
     try {
-      // 1. Remove any previous loose print overlays
-      const oldImg = document.getElementById("print-overlay-image");
-      if (oldImg) oldImg.remove();
+      // Fetch image as blob to bypass cross-origin iframe restrictions
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
 
-      // 2. Create an invisible image specifically tagged for the @media print CSS
-      const printImg = document.createElement("img");
-      printImg.id = "print-overlay-image";
-      printImg.src = url;
+      const iframe = document.createElement('iframe');
+      // Position offscreen so it doesn't affect layout but is still technically rendered
+      iframe.style.position = 'absolute';
+      iframe.style.top = '-9999px';
+      iframe.style.width = '1px';
+      iframe.style.height = '1px';
+      iframe.src = blobUrl;
+      document.body.appendChild(iframe);
 
-      // 3. Wait for the browser to download the image completely before opening print dialog
-      printImg.onload = () => {
-        window.print();
-        
-        // 4. Cleanup the DOM after the print dialog resolves
+      iframe.onload = () => {
+        // Critical Fix: Wait 500ms for React DOM to finish its state transitions (closing overlays etc)
+        // Without this delay, the mobile browser print engine mistakenly captures the main window.
         setTimeout(() => {
-          if (document.body.contains(printImg)) {
-            document.body.removeChild(printImg);
-          }
-        }, 2000);
+          iframe.contentWindow.focus();
+          iframe.contentWindow.print();
+          
+          // Cleanup iframe and blob memory after a generous timeout
+          setTimeout(() => {
+            if (document.body.contains(iframe)) {
+              document.body.removeChild(iframe);
+            }
+            URL.revokeObjectURL(blobUrl);
+          }, 3000);
+        }, 500); 
       };
-
-      // Handle loading errors gracefully
-      printImg.onerror = () => {
-        setCustomDialog({ type: 'alert', message: "Failed to load image for printing. Try again." });
-        if (document.body.contains(printImg)) printImg.remove();
-      };
-
-      document.body.appendChild(printImg);
-
     } catch (err) {
       console.error("Failed to print token:", err);
-      setCustomDialog({ type: 'alert', message: "Printing failed. Please try manually from view tokens." });
+      // Fallback if fetch fails (e.g. CORS not configured on bucket)
+      const printWindow = window.open(url, "_blank");
+      if (printWindow) {
+        printWindow.onload = () => printWindow.print();
+      } else {
+        setCustomDialog({ type: 'alert', message: "Printing failed. Please try manually from view tokens." });
+      }
     }
   };
 
