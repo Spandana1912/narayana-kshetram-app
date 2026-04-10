@@ -22,6 +22,7 @@ function App() {
   // View States
   const [viewingTokens, setViewingTokens] = useState(null); // 'Male' | 'Female' | null
   const [tokensData, setTokensData] = useState([]);
+  const [isLoadingTokens, setIsLoadingTokens] = useState(false);
 
   const [viewingMissing, setViewingMissing] = useState(null); // 'Male' | 'Female' | null
   const [missingTokensData, setMissingTokensData] = useState([]);
@@ -84,13 +85,17 @@ function App() {
 
   const loadTokens = async (gender) => {
     try {
+      setViewingTokens(gender);
+      setIsLoadingTokens(true);
       const res = await axios.get(`${API_BASE}/api/tokens?gender=${gender}`);
       // Sort ascending (1 to 108)
       const sorted = res.data.sort((a, b) => a.tokenNumber - b.tokenNumber);
       setTokensData(sorted);
-      setViewingTokens(gender);
     } catch (err) {
       setCustomDialog({ type: 'alert', message: "Failed to load tokens." });
+      setViewingTokens(null);
+    } finally {
+      setIsLoadingTokens(false);
     }
   };
 
@@ -290,7 +295,12 @@ function App() {
             <Webcam
               ref={webcamRef}
               screenshotFormat="image/jpeg"
-              videoConstraints={{ facingMode: facingMode }}
+              screenshotQuality={0.8}
+              videoConstraints={{ 
+                facingMode: facingMode,
+                width: { ideal: 640 },
+                height: { ideal: 480 }
+              }}
               className="webcam-feed"
             />
           </div>
@@ -335,26 +345,33 @@ function App() {
               <button className="close-btn" onClick={() => setViewingTokens(null)}>✖</button>
             </div>
             <div className="gallery-grid">
-              {tokensData.length === 0 ? <p>No tokens captured yet.</p> : tokensData.map(t => {
-                const imgUrl = t.photoUrl.startsWith('http') ? t.photoUrl : `${API_BASE}${t.photoUrl}`;
-                return (
-                  <div key={t._id} className="token-card">
-                    <img
-                      src={imgUrl}
-                      alt={`Token ${t.tokenNumber}`}
-                      onClick={() => setViewingImage(imgUrl)}
-                      style={{ cursor: 'pointer' }}
-                    />
-                    <div className="token-info" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <strong>Token: {t.tokenNumber}</strong>
-                      <div className="token-actions" style={{ display: 'flex', gap: '5px' }}>
-                        <button className="print-btn" onClick={() => printToken(imgUrl)} title="Print">🖨️</button>
-                        <button className="danger-btn" style={{ padding: '8px', fontSize: '12px' }} onClick={() => deleteToken(t._id, t.tokenNumber, viewingTokens)} title="Delete">🗑️</button>
+              {isLoadingTokens ? (
+                <p style={{ textAlign: "center", width: "100%", padding: "20px" }}>⏳ Loading tokens...</p>
+              ) : tokensData.length === 0 ? (
+                <p>No tokens captured yet.</p>
+              ) : (
+                tokensData.map(t => {
+                  const imgUrl = t.photoUrl.startsWith('http') ? t.photoUrl : `${API_BASE}${t.photoUrl}`;
+                  return (
+                    <div key={t._id} className="token-card">
+                      <img
+                        src={imgUrl}
+                        alt={`Token ${t.tokenNumber}`}
+                        loading="lazy"
+                        onClick={() => setViewingImage(imgUrl)}
+                        style={{ cursor: 'pointer' }}
+                      />
+                      <div className="token-info" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <strong>Token: {t.tokenNumber}</strong>
+                        <div className="token-actions" style={{ display: 'flex', gap: '5px' }}>
+                          <button className="print-btn" onClick={() => printToken(imgUrl)} title="Print">🖨️</button>
+                          <button className="danger-btn" style={{ padding: '8px', fontSize: '12px' }} onClick={() => deleteToken(t._id, t.tokenNumber, viewingTokens)} title="Delete">🗑️</button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </div>
         </div>
